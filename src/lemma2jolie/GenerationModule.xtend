@@ -6,7 +6,7 @@ import de.fhdo.lemma.data.DataPackage
 import de.fhdo.lemma.data.DataModel
 import de.fhdo.lemma.data.Context
 import de.fhdo.lemma.data.DataStructure
-import de.fhdo.lemma.data.ListType
+import de.fhdo.lemma.data.CollectionType
 import de.fhdo.lemma.data.Enumeration
 import de.fhdo.lemma.data.DataField
 import de.fhdo.lemma.data.PrimitiveTypeConstants
@@ -241,54 +241,54 @@ class GenerationModule extends AbstractCodeGenerationModule {
     }
 
     /**
-     * Encode a LEMMA list type as a Jolie type
+     * Encode a LEMMA collection type as a Jolie type
      */
-    private def dispatch generateComplexType(ListType listType) {
-        val fieldTypeInfo = listType.generateFieldType
+    private def dispatch generateComplexType(CollectionType collectionType) {
+        val fieldTypeInfo = collectionType.generateFieldType
 
         '''
         «fieldTypeInfo.generatedFieldType»
-        «listType.features.map[it.literal].generateFeatures»
-        type «listType.name» {
+        «collectionType.features.map[it.literal].generateFeatures»
+        type «collectionType.name» {
             «fieldTypeInfo.fieldName»*: «fieldTypeInfo.fieldTypeName»
         }
         '''
     }
 
     /**
-     * Derive the type of the field in a Jolie type being derived from a LEMMA list type
+     * Derive the type of the field in a Jolie type being derived from a LEMMA collection type
      */
-    private def generateFieldType(ListType listType) {
+    private def generateFieldType(CollectionType collectionType) {
         return
-        // LEMMA list type comprises a single primitive type, which will become the type of the
-        // field "f" in the corresponding Jolie list type.
-        if (listType.primitiveType !== null)
-            new FieldTypeInfo("f", listType.primitiveType.typeName.generatePrimitiveType)
+        // LEMMA collection type comprises a single primitive type, which will become the type of
+        // the field "f" in the corresponding Jolie list type.
+        if (collectionType.primitiveType !== null)
+            new FieldTypeInfo("f", collectionType.primitiveType.typeName.generatePrimitiveType)
 
-        // LEMMA list type comprises a single data field. The name of the field in the encoded Jolie
-        // list type will correspond to the name of the LEMMA data field. The type of the Jolie
-        // field will be the encoded Jolie type of the LEMMA data field's type.
-        else if (listType.dataFields.size == 1) {
-            val field = listType.dataFields.get(0)
+        // LEMMA collection type comprises a single data field. The name of the field in the encoded
+        // Jolie list type will correspond to the name of the LEMMA data field. The type of the
+        // Jolie field will be the encoded Jolie type of the LEMMA data field's type.
+        else if (collectionType.dataFields.size == 1) {
+            val field = collectionType.dataFields.get(0)
             val fieldTypeName = field.primitiveType?.typeName?.generatePrimitiveType
                 ?: field.complexType.name
             new FieldTypeInfo(field.name, fieldTypeName)
 
-        // LEMMA list type comprises more than one field (empty list types are forbidden per the
-        // grammar of LEMMA's domain modeling language). Semantically, the fields form a structured
-        // type so that each entry in the list will have a structure consisting of all fields of the
-        // list type. To encode this circumstance in Jolie, we first produce a Jolie type that maps
-        // the structure of the LEMMA data fields and then use it as the type for the generated
-        // Jolie field called "f".
+        // LEMMA collection type comprises more than one field (empty collection types are forbidden
+        // per the grammar of LEMMA's domain modeling language). Semantically, the fields form a
+        // structured type so that each entry in the collection will have a structure consisting of
+        // all fields of the collection type. To encode this circumstance in Jolie, we first produce
+        // a Jolie type that maps the structure of the LEMMA data fields and then use it as the type
+        // for the generated Jolie field called "f".
         } else {
-            val fieldTypeName = '''«listType.name»_structure'''
+            val fieldTypeName = '''«collectionType.name»_structure'''
             new FieldTypeInfo("f", fieldTypeName,
-                generateTypeFromFields(fieldTypeName, listType.dataFields))
+                generateTypeFromFields(fieldTypeName, collectionType.dataFields))
         }
     }
 
     /**
-     * Gather encoding information about LEMMA list fields
+     * Gather encoding information about LEMMA collection fields
      */
     private static class FieldTypeInfo {
         @Accessors(PUBLIC_GETTER)

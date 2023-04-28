@@ -23,9 +23,13 @@ do_install_libs() {
         -DgeneratePom=true
 }
 
-do_install_libs "de.fhdo.lemma.data.datadsl" "0.8.5-SNAPSHOT" \
+do_install_libs "de.fhdo.lemma.data.datadsl" "0.8.6-SNAPSHOT" \
     "all-dependencies"
-do_install_libs "de.fhdo.lemma.model_processing" "0.8.5-SNAPSHOT" \
+do_install_libs "de.fhdo.lemma.technology.technologydsl" "0.8.6-SNAPSHOT" \
+    "all-dependencies"
+do_install_libs "de.fhdo.lemma.servicedsl" "0.8.6-SNAPSHOT" \
+    "all-dependencies"
+do_install_libs "de.fhdo.lemma.model_processing" "0.8.6-SNAPSHOT" \
     "all-dependencies"
 
 mvn clean install
