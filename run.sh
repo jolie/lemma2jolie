@@ -15,4 +15,6 @@ folder="$(realpath $(dirname $file))"
 java -jar target/lemma2jolie.jar \
     -s "$file" \
     -t . \
-    code_generation --allow_code_generation_outside_target_folder
+    code_generation \
+        --allow_code_generation_outside_target_folder \
+        --invoke_only_specified_modules services

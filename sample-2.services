@@ -1,0 +1,22 @@
+import datatypes from "sample-2.data" as Domain
+
+functional microservice org.example.Sample {
+    interface Sample {
+        op1(
+            sync in a : boolean,
+            sync in b : Domain::Order.Order,
+            sync out c : string,
+            async in d : Domain::Order.Order,
+            async in e : int,
+            async out f : float
+        );
+
+        op3(
+            sync in a : boolean,
+            sync in b : Domain::Order.DeliveryInformation,
+            sync out t : string
+        );
+
+        op4();
+    }
+}

@@ -31,6 +31,18 @@
             <classifier>all-dependencies</classifier>
         </dependency>
         <dependency>
+            <groupId>de.fhdo.lemma.technology.technologydsl</groupId>
+            <artifactId>de.fhdo.lemma.technology.technologydsl</artifactId>
+            <version>${lemma-version}</version>
+            <classifier>all-dependencies</classifier>
+        </dependency>
+        <dependency>
+            <groupId>de.fhdo.lemma.servicedsl</groupId>
+            <artifactId>de.fhdo.lemma.servicedsl</artifactId>
+            <version>${lemma-version}</version>
+            <classifier>all-dependencies</classifier>
+        </dependency>
+        <dependency>
             <groupId>de.fhdo.lemma.model_processing</groupId>
             <artifactId>de.fhdo.lemma.model_processing</artifactId>
             <version>${lemma-version}</version>

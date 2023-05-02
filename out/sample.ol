@@ -55,7 +55,7 @@ type ChargerSpeed {
     literal: string(enum(["FAST", "NORMAL"]))
 }
 
-///@entity
+///@valueObject
 type Driver {
     ///@identifier
     id: string
@@ -97,3 +97,43 @@ type ParkingSpaceBookingVO {
     priceInEuro: double
 }
 ///@endCtx
+
+///@interface(org.example.Sample.Sample)
+///@operationTypes(org.example.Sample.Sample.op1)
+type op1_in {
+    a : bool
+    b : ParkingSpaceBooking
+}
+type op1_out {
+    c : string
+}
+type op1_in_d {
+    token : Token
+    d : ParkingSpaceBooking
+}
+type op1_in_e {
+    token : Token
+    e : int
+}
+type op1_out_f {
+    f : double
+}
+///@operationTypes(org.example.Sample.Sample.op3)
+type op3_in {
+    a : bool
+    b : ParkingSpaceBooking
+}
+type op3_out {
+    t : string
+}
+interface org_example_Sample_Sample {
+    OneWay:
+        op1_in_d(op1_in_d),
+        op1_in_e(op1_in_e),
+        op4(void)
+    RequestResponse:
+        op1_in(op1_in)(Token),
+        op1_out_f(Token)(op1_out_f),
+        op1_out(Token)(op1_out),
+        op3(op3_in)(op3_out)
+}
