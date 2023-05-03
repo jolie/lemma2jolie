@@ -27,8 +27,12 @@ import org.apache.commons.io.FilenameUtils
  */
 @CodeGenerationModule(name="domain", modelKinds=ModelKind.SOURCE)
 class DomainGenerationModule extends AbstractCodeGenerationModule {
+    public static val OWN_FILES_FOR_CONTEXTS_ARGUMENT = #["--own_files_for_contexts"]
+
     val generatedComplexTypesNames = <String>newHashSet
     val structuresWithGeneratedFeatures = <String>newHashSet
+    @Accessors
+    var boolean ownFilesForContexts
 
     /**
      * Return language namespace for parsing LEMMA domain models
@@ -42,27 +46,51 @@ class DomainGenerationModule extends AbstractCodeGenerationModule {
      */
     override execute(String[] phaseArguments, String[] moduleArguments) {
         structuresWithGeneratedFeatures.clear
+        ownFilesForContexts = moduleArguments.exists[OWN_FILES_FOR_CONTEXTS_ARGUMENT.contains(it)]
 
         val model = resource.contents.get(0) as DataModel
-        val generatedContexts = model.contexts.map[it.generateContext]
+        val contextFilesAndContent = <String, String>newHashMap
+        for (context : model.contexts) {
+            val contextFile = context.generateContextFile(targetFolder, modelFile)
+            val contextFilePath = contextFile.key
+            val contextFileContent = contextFile.value
 
-        val baseFileName = FilenameUtils.getBaseName(modelFile)
-        val targetFile = '''«targetFolder»«File.separator»«baseFileName».ol'''
-        return withCharset(#{targetFile -> generatedContexts.join("\n")},
-            StandardCharsets.UTF_8.name)
+            val existingContent = contextFilesAndContent.get(contextFilePath)
+            if (existingContent === null)
+                contextFilesAndContent.put(contextFilePath, contextFileContent)
+            else
+                contextFilesAndContent.put(contextFilePath,
+                    existingContent + "\n" + contextFileContent)
+        }
+
+        return withCharset(contextFilesAndContent, StandardCharsets.UTF_8.name)
     }
 
     /**
-     * Encode a bounded context contained in a LEMMA domain model in Jolie
+     * Encode a bounded context contained in a LEMMA domain model into a Jolie file
      */
-    def generateContext(Context context) {
+    def generateContextFile(Context context, String targetFolder, String modelFile) {
         generatedComplexTypesNames.clear
 
-        '''
-        ///@beginCtx(«context.name»)
-        «context.complexTypes.map[it.generateComplexType].join("\n")»
-        ///@endCtx
-        '''
+        return getFilename(context, targetFolder, modelFile) ->
+            '''
+            ///@beginCtx(«context.name»)
+            «context.complexTypes.map[it.generateComplexType].join("\n")»
+            ///@endCtx
+            '''
+    }
+
+    /**
+     * Get the name of the Jolie file for the encoded bounded context
+     */
+    def getFilename(Context context, String targetFolder, String modelFile) {
+        val baseFileName = FilenameUtils.getBaseName(modelFile)
+        // In case the user specified to have the Jolie representation of each bounded context
+        // within its own file, we append the name of the context as a suffix to the Jolie file
+        return if (ownFilesForContexts)
+                '''«targetFolder»«File.separator»«baseFileName»_«context.name».ol'''
+            else
+                '''«targetFolder»«File.separator»«baseFileName».ol'''
     }
 
     /**

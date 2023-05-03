@@ -11,8 +11,6 @@ import de.fhdo.lemma.utils.LemmaUtils
 import de.fhdo.lemma.data.DataDslStandaloneSetup
 import java.io.FileInputStream
 import de.fhdo.lemma.data.DataModel
-import org.apache.commons.io.FilenameUtils
-import java.io.File
 import java.nio.charset.StandardCharsets
 import de.fhdo.lemma.service.Interface
 import de.fhdo.lemma.service.Operation
@@ -20,10 +18,15 @@ import de.fhdo.lemma.technology.ExchangePattern
 import de.fhdo.lemma.data.ComplexType
 import de.fhdo.lemma.data.PrimitiveType
 import de.fhdo.lemma.technology.CommunicationType
-import de.fhdo.lemma.data.Context
 import java.util.Set
 import de.fhdo.lemma.service.Parameter
+import static lemma2jolie.DomainGenerationModule.OWN_FILES_FOR_CONTEXTS_ARGUMENT
+import java.util.Objects
+import org.eclipse.xtend.lib.annotations.Accessors
+import de.fhdo.lemma.service.Microservice
 import de.fhdo.lemma.model_processing.phases.PhaseException
+import de.fhdo.lemma.data.Context
+import java.util.LinkedHashSet
 
 /**
  * LEMMA code generation module to derive Jolie code from a LEMMA service model. The service model
@@ -34,8 +37,10 @@ import de.fhdo.lemma.model_processing.phases.PhaseException
  */
 @CodeGenerationModule(name="services", modelKinds=ModelKind.SOURCE)
 class ServicesGenerationModule extends AbstractCodeGenerationModule {
+    val serviceTargetFiles = <String, GeneratedContextFile>newHashMap
     val availableComplexTypes = <String, Set<String>>newHashMap
-    var ParameterTypesManager parameterTypesManager = null
+    var ParameterTypesManager parameterTypesManager
+    var boolean ownFilesForContexts
 
     /**
      * Helper class to collect types generated from LEMMA operation parameters
@@ -107,18 +112,26 @@ class ServicesGenerationModule extends AbstractCodeGenerationModule {
      * Execution logic of the module
      */
     override execute(String[] phaseArguments, String[] moduleArguments) {
+        serviceTargetFiles.clear
         availableComplexTypes.clear
         parameterTypesManager = new ParameterTypesManager()
+        ownFilesForContexts = moduleArguments.exists[OWN_FILES_FOR_CONTEXTS_ARGUMENT.contains(it)]
 
         val model = resource.contents.get(0) as ServiceModel
-        val generatedModelContents = newArrayList(generateDomainContexts(model))
+        val generatedContextFiles = generateDomainContextFiles(model)
+
+        if (ownFilesForContexts)
+            serviceTargetFiles.putAll(identifyServiceTargetFiles(model, generatedContextFiles))
 
         model.microservices
             .map[it.interfaces]
             .flatten
             .forEach[
+                var String exception = null
                 try {
-                    generatedModelContents.add((it as Interface).generateInterface.toString)
+                    it.microservice
+                        .getTargetFile(generatedContextFiles)
+                        .addContent((it as Interface).generateInterface.toString)
                 } catch (InvalidParameterTypeException ex) {
                     exception = ex.message
                 } catch (UnsupportedExchangePattern ex) {
@@ -129,9 +142,7 @@ class ServicesGenerationModule extends AbstractCodeGenerationModule {
                     throw new PhaseException(exception, true)
             ]
 
-        val baseFileName = FilenameUtils.getBaseName(modelFile)
-        val targetFile = '''«targetFolder»«File.separator»«baseFileName».ol'''
-        return withCharset(#{targetFile -> generatedModelContents.join("\n")},
+        return withCharset(generatedContextFiles.toMap([it.filepath], [it.generatedContent]),
             StandardCharsets.UTF_8.name)
     }
 
@@ -140,8 +151,8 @@ class ServicesGenerationModule extends AbstractCodeGenerationModule {
      * service model. This generation step ensures that the Jolie code produced for LEMMA
      * microservices can access these types.
      */
-    private def generateDomainContexts(ServiceModel serviceModel) {
-        val generatedContexts = new StringBuffer
+    private def generateDomainContextFiles(ServiceModel serviceModel) {
+        val generatedContextsPerFile = <GeneratedContextFile>newLinkedHashSet
 
         serviceModel.imports.filter[it.importType == ImportType.DATATYPES].forEach[
             // Load the imported domain model
@@ -153,15 +164,93 @@ class ServicesGenerationModule extends AbstractCodeGenerationModule {
 
             // Generate the domain model types per bounded context using the domain generation
             // module
-            domainModel.contexts.forEach[
+            domainModel.contexts.forEach[context |
                 val generationModule = new DomainGenerationModule()
-                generatedContexts.append(generationModule.generateContext(it as Context))
+                generationModule.ownFilesForContexts = ownFilesForContexts
+                val generatedContextFileContent = generationModule.generateContextFile(
+                        context as Context,
+                        targetFolder,
+                        modelFile
+                    )
+                val generatedFile = generatedContextFileContent.key
+                val generatedContent = generatedContextFileContent.value
+                // Determine the file for the generated context-specific types, which is either a
+                // dedicated file in case the user instrumented the generator accordingly or the#
+                // file that gathers all generated types of all bounded contexts
+                var generatedContextFile = if (!ownFilesForContexts)
+                        generatedContextsPerFile.findFirst[it.representsAllContexts]
+                    else
+                        null
+
+                if (generatedContextFile === null) {
+                    val contextName = ownFilesForContexts ? context.name : null
+                    generatedContextFile = new GeneratedContextFile(contextName, generatedFile)
+                    generatedContextFile.representsAllContexts = !ownFilesForContexts
+                    generatedContextsPerFile.add(generatedContextFile)
+                }
+
+                generatedContextFile.addContent(generatedContent)
+
                 val generatedComplexTypes = generationModule.generatedComplexTypesNames
                 availableComplexTypes.put(importAlias, generatedComplexTypes)
             ]
         ]
 
-        return generatedContexts.toString
+        return generatedContextsPerFile
+    }
+
+    /**
+     * Helper class to cluster information about generated files, the bounded contexts they cover,
+     * their paths, and content
+     */
+    private static class GeneratedContextFile {
+        @Accessors(PUBLIC_GETTER)
+        val String contextName
+        @Accessors(PUBLIC_GETTER)
+        val String filepath
+        @Accessors(PUBLIC_GETTER)
+        var String generatedContent = ""
+        /**
+         * Flag to indicate that this file gathers the generated Jolie code for all bounded
+         * contexts. That is, there will be no context-specific generated files but only one
+         * comprising all generated code.
+         */
+        @Accessors
+        var boolean representsAllContexts
+
+        /**
+         * Constructor
+         */
+        new(String contextName, String filepath) {
+            this.contextName = contextName
+            this.filepath = filepath
+        }
+
+        /**
+         * Add generated content to the file
+         */
+        def addContent(String content) {
+            generatedContent += if (generatedContent.empty)
+                    content
+                else
+                    "\n" + content
+        }
+
+        /**
+         * Equality based on the name of the covered bounded context
+         */
+        override equals(Object other) {
+            return (other == this) ||
+                (other instanceof GeneratedContextFile) &&
+                (other as GeneratedContextFile).contextName == contextName
+        }
+
+        /**
+         * Hash code based on the name of the covered bounded context
+         */
+        override hashCode() {
+            return Objects.hashCode(contextName)
+        }
     }
 
     /**
@@ -172,6 +261,62 @@ class ServicesGenerationModule extends AbstractCodeGenerationModule {
         val resource = UtilKt.loadXtextResource(new DataDslStandaloneSetup, modelPath,
                modelInputStream)
         return resource.contents.get(0) as DataModel
+    }
+
+    /**
+     * Identify context-specific generation target file from the given set of files for each
+     * microservice in the given service model. In case the identification is not unambiguously
+     * possible, this method with instruct the generator to stop by throwing a corresponding
+     * PhaseException.
+     */
+    private def identifyServiceTargetFiles(ServiceModel model,
+        LinkedHashSet<GeneratedContextFile> generatedContextFiles) {
+        return model.microservices.toMap(
+            [it.buildQualifiedName(".")],
+
+            [
+                val contexts = it.determineContexts
+
+                if (contexts.size == 1)
+                    generatedContextFiles.findFirst[it.contextName == contexts.get(0)]
+                else if (contexts.size > 1)
+                    throw new PhaseException('''Microservice «it.buildQualifiedName(".")» ''' +
+                        '''operates on more than one bounded context: «contexts.join(", ")». ''' +
+                        "Unambiguous identification of context-specific generation target file " +
+                        "not possible.", true)
+                else
+                    throw new PhaseException('''Microservice «it.buildQualifiedName(".")» does ''' +
+                        "not operate on a bounded context which is necessary for the generation " +
+                        "of contexts in their own files", true)
+            ]
+        )
+    }
+
+    /**
+     * Determine all bounded contexts on which the given microservice operators. These contexts
+     * correspond to the bounded contexts of the service's complex operation parameter types.
+     */
+    private def determineContexts(Microservice microservice) {
+        return microservice.containedOperations
+            .map[it.parameters]
+            .flatten
+            .map[it.effectiveType]
+            .filter[it instanceof ComplexType]
+            .map[(it as ComplexType).context.name]
+            .toSet
+    }
+
+    /**
+     * Get the target file for the Jolie code of the given microservice. The target file is either
+     * context-specific (in case the user instructed the generator to have context-specific files)
+     * or otherwise the single file that gathers all Jolie types from all bounded contexts.
+     */
+    private def getTargetFile(Microservice microservice,
+        LinkedHashSet<GeneratedContextFile> generatedContextFiles) {
+        return if (ownFilesForContexts)
+                serviceTargetFiles.get(microservice.buildQualifiedName("."))
+            else
+                generatedContextFiles.findFirst[it.representsAllContexts]
     }
 
     /**
