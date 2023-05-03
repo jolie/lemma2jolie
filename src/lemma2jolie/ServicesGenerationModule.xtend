@@ -23,6 +23,7 @@ import de.fhdo.lemma.technology.CommunicationType
 import de.fhdo.lemma.data.Context
 import java.util.Set
 import de.fhdo.lemma.service.Parameter
+import de.fhdo.lemma.model_processing.phases.PhaseException
 
 /**
  * LEMMA code generation module to derive Jolie code from a LEMMA service model. The service model
@@ -119,8 +120,13 @@ class ServicesGenerationModule extends AbstractCodeGenerationModule {
                 try {
                     generatedModelContents.add((it as Interface).generateInterface.toString)
                 } catch (InvalidParameterTypeException ex) {
-                    println(ex.message)
+                    exception = ex.message
+                } catch (UnsupportedExchangePattern ex) {
+                    exception = ex.message
                 }
+
+                if (exception !== null)
+                    throw new PhaseException(exception, true)
             ]
 
         val baseFileName = FilenameUtils.getBaseName(modelFile)
