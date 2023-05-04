@@ -537,7 +537,7 @@ class ServicesGenerationModule extends AbstractCodeGenerationModule {
         ]
 
         /* Handle synchronous outgoing parameters */
-        val syncOutType = parameterTypesManager.getTypeForSynchronousParameters(operation,
+        var syncOutType = parameterTypesManager.getTypeForSynchronousParameters(operation,
             ExchangePattern.OUT)
 
         if (operation.hasAsynchronousParameters) {
@@ -546,14 +546,13 @@ class ServicesGenerationModule extends AbstractCodeGenerationModule {
             // the previously conducted asynchronous work.
             if (syncOutType !== null)
                 requestResponses.add('''«operation.name»_out(Token)(«syncOutType»)''')
-        } else if (syncOutType !== null)
+        } else {
             // No asynchronous parameters, so the generation must produce one single
             // request-response operation for all incoming and outgoing synchronous parameters
+            if (syncOutType === null)
+                syncOutType = "void"
             requestResponses.add('''«operation.name»(«syncInType»)(«syncOutType»)''')
-        else
-            // No asynchronous parameters and no synchronous outgoing parameter, so the generation
-            // must produce one single one-way operation for all incoming synchronous parameters
-            oneWays.add('''«operation.name»(«syncInType»)''')
+        }
 
         return oneWays -> requestResponses
     }
