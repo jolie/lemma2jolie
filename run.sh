@@ -5,7 +5,7 @@
 
 if [ -z "$1" ]
 then
-    echo "No input LEMMA domain model given. Exiting..."
+    echo "No input LEMMA model given. Exiting..."
     exit 1
 fi
 
