@@ -160,7 +160,6 @@ class ServicesGenerationModule extends AbstractCodeGenerationModule {
                 serviceModel.eResource)
             val importedDomainModelPath = LemmaUtils.removeFileUri(importedDomainModelUri)
             val domainModel = loadDomainModel(importedDomainModelPath)
-            val importAlias = it.name
 
             // Generate the domain model types per bounded context using the domain generation
             // module
@@ -192,7 +191,10 @@ class ServicesGenerationModule extends AbstractCodeGenerationModule {
                 generatedContextFile.addContent(generatedContent)
 
                 val generatedComplexTypes = generationModule.generatedComplexTypesNames
-                availableComplexTypes.put(importAlias, generatedComplexTypes)
+                if (availableComplexTypes.containsKey(context.name))
+                    throw new PhaseException('''Duplicate context «context.name» in different ''' +
+                        "domain models detected", true)
+                availableComplexTypes.put(context.name, generatedComplexTypes)
             ]
         ]
 
@@ -395,33 +397,33 @@ class ServicesGenerationModule extends AbstractCodeGenerationModule {
         operation.parameters
             .filter[it.importedType !== null]
             .forEach[
-                val importAlias = it.importedType.import.name
-                val typeName = (it.importedType.type as ComplexType).buildQualifiedName(".")
-                if (!importAlias.isTypeAvailable(typeName))
-                    throw new InvalidParameterTypeException(operation, importAlias, typeName)
+                val type = it.importedType.type as ComplexType
+                val contextName = type.context.name
+                val typeName = type.buildQualifiedName(".")
+                if (!contextName.isTypeAvailable(typeName))
+                    throw new InvalidParameterTypeException(operation, typeName)
             ]
     }
 
     /**
-     * Check if a type with the given name exists in the domain model with the given import alias. A
-     * type does not exist when there is no mapping of LEMMA to a Jolie type to be realized by the
-     * domain generation. For example, LEMMA data structures with the Specification feature may only
+     * Check if a type with the given name exists in the domain model with the given context. A type
+     * does not exist when there is no mapping of LEMMA to a Jolie type to be realized by the domain
+     * generation. For example, LEMMA data structures with the Specification feature may only
      * comprise operations so that no (empty) Jolie type will be generated but only an interface.
      */
-    private def isTypeAvailable(String importAlias, String typeName) {
-        return availableComplexTypes.containsKey(importAlias) &&
-            availableComplexTypes.get(importAlias).contains(typeName)
+    private def isTypeAvailable(String contextName, String typeName) {
+        return availableComplexTypes.containsKey(contextName) &&
+            availableComplexTypes.get(contextName).contains(typeName)
     }
 
     /**
      * Specialized exception to communicate the absence of a Jolie mapping for a LEMMA type
      */
     private static class InvalidParameterTypeException extends Exception {
-        new(Operation operation, String importAlias, String typeName) {
-            super('''Invalid type «importAlias»::«typeName» for operation ''' +
-                '''«operation.buildQualifiedName(".")»: Likely there exists no mapping for ''' +
-                "the LEMMA type into a Jolie type so that it will not be available in the " +
-                "generated program")
+        new(Operation operation, String typeName) {
+            super('''Invalid type «typeName» for operation «operation.buildQualifiedName(".")»:''' +
+                " Likely there exists no mapping for the LEMMA type into a Jolie type so that it " +
+                "will not be available in the generated program")
         }
     }
 
