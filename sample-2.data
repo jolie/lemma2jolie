@@ -91,3 +91,28 @@ context Order {
 
     collection MenuItemIdAndQuantityList { MenuItemIdAndQuantity itemQuantity }
 }
+
+context API {
+    structure CreateOrderRequest<valueObject> {
+        immutable long consumerId,
+        immutable long restaurantId,
+        immutable LineItems lineItems
+    }
+
+    structure LineItem {
+        string menuItemId,
+        int quantity
+    }
+
+    collection LineItems { LineItem i }
+
+    structure CreateOrderResponse<valueObject> {
+        immutable long orderId
+    }
+
+    structure GetOrderResponse<valueObject> {
+        immutable long orderId,
+        immutable string state,
+        immutable double orderTotal
+    }
+}

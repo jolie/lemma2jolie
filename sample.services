@@ -1,22 +1,10 @@
 import datatypes from "sample.data" as Domain
 
-functional microservice org.example.Sample {
-    interface Sample {
-        op1(
-            sync in a : boolean,
-            sync in b : Domain::BookingManagement.ParkingSpaceBooking,
-            sync out c : string,
-            async in d : Domain::BookingManagement.ParkingSpaceBooking,
-            async in e : int,
-            async out f : float
+functional microservice org.example.BookingManagement {
+    interface BookingManagement {
+        createParkingSpaceBooking(
+            sync in booking : Domain::BookingManagement.ParkingSpaceBookingVO,
+            sync out bookindId : long
         );
-
-        op3(
-            sync in a : boolean,
-            sync in b : Domain::BookingManagement.ParkingSpaceBooking,
-            sync out t : string
-        );
-
-        op4();
     }
 }

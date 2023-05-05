@@ -1,22 +1,90 @@
 import datatypes from "sample-3.data" as Domain
 
-functional microservice org.example.Sample {
-    interface Sample {
-        op1(
-            sync in a : boolean,
-            sync in b : Domain::customerSelfService.CustomerRegistrationRequestDto,
-            sync out c : string,
-            async in d : Domain::customerSelfService.CustomerRegistrationRequestDto,
-            async in e : int,
-            async out f : float
+functional microservice org.example.CustomerSelfServiceBackend {
+    interface authenticationController {
+        authenticationRequest(
+            sync authenticationRequest : Domain::customerSelfService.AuthenticationRequestDto,
+            sync out authenticationResponse : Domain::customerSelfService.AuthenticationResponseDto
         );
 
-        op3(
-            sync in a : boolean,
-            sync in b : Domain::customerSelfService.UserSecurityDetails,
-            sync out t : string
+        signupUser(
+            sync registration : Domain::customerSelfService.SignupRequestDto,
+            sync out userResponse : Domain::customerSelfService.UserResponseDto
+        );
+    }
+
+    interface cityStaticDataHolder {
+        getCitiesForPostalCode(
+            sync postcalCode : string,
+            sync out result : Domain::customerSelfService.CitiesResponseDto
+        );
+    }
+
+    interface customerInformationHolder {
+        changeAddress(
+            sync customerId : Domain::customerSelfService.CustomerId,
+            sync requestDto : Domain::customerSelfService.AddressDto,
+            sync out result : Domain::customerSelfService.AddressDto
         );
 
-        op4();
+        getCustomer(
+            sync authentication : string,
+            sync customerId : Domain::customerSelfService.CustomerId,
+            sync out result : Domain::customerSelfService.CustomerDto
+        );
+
+        registerCustomer(
+            sync authentication : string,
+            sync requestDto : Domain::customerSelfService.CustomerRegistrationRequestDto,
+            sync out result : Domain::customerSelfService.CustomerDto
+        );
+    }
+
+    interface userInformationHolder {
+        getCurrentUser(
+            sync authentitaction : string,
+            sync out response : Domain::customerSelfService.UserResponseDto
+        );
+    }
+
+    interface insuranceQuoteExpiredMessageConsumer {
+        receiveInsuranceQuoteExpiredEvent(
+            async message : Domain::customerSelfService.InsuranceQuoteExpiredEvent
+        );
+    }
+
+    interface insuranceQuoteRequestInformationHolder {
+        getInsuranceQuoteRequest(
+            sync authentication : string,
+            sync insuranceQuoteRequestId : long,
+            sync out quoteRequestDto : Domain::customerSelfService.InsuranceQuoteRequestDto
+        );
+
+        createInsuranceQuoteRequest(
+            sync authentication : string,
+            sync requestDto : Domain::customerSelfService.InsuranceQuoteRequestDto,
+            sync out quoteRequestDto : Domain::customerSelfService.InsuranceQuoteRequestDto,
+            async out insuranceQuoteRequestEvent
+                : Domain::customerSelfService.InsuranceQuoteRequestEvent
+        );
+
+        respondToInsuranceQuote(
+            sync id : long,
+            sync insuranceQuoteResponseDto : Domain::customerSelfService.InsuranceQuoteResponseDto,
+            sync out quoteRequestDto : Domain::customerSelfService.InsuranceQuoteRequestDto,
+            async out customerDecisionEvent : Domain::customerSelfService.CustomerDecisionEvent
+        );
+    }
+
+    interface insuranceQuoteResponseMessageConsumer {
+        receiveInsuranceQuoteResponse(
+            async message : Domain::customerSelfService.InsuranceQuoteResponseEvent
+        );
+    }
+
+    interface policyCreatedMessageConsumer {
+        receivePolicyCreatedEvent(
+            async message : Domain::customerSelfService.InsuranceQuoteResponseEvent
+        );
     }
 }
