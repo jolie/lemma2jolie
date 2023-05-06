@@ -619,42 +619,162 @@ type RequestStatusChangeDtos {
 }
 ///@endCtx
 
-///@interface(org.example.Sample.Sample)
-///@operationTypes(org.example.Sample.Sample.op1)
-type op1_in {
-    a : bool
-    b : CustomerRegistrationRequestDto
+///@interface(org.example.CustomerSelfServiceBackend.authenticationController)
+///@operationTypes(org.example.CustomerSelfServiceBackend.authenticationController.authenticationRequest)
+type authenticationRequest_in {
+    authenticationRequest : AuthenticationRequestDto
 }
-type op1_out {
-    c : string
+type authenticationRequest_out {
+    authenticationResponse : AuthenticationResponseDto
 }
-type op1_in_d {
-    token : Token
-    d : CustomerRegistrationRequestDto
+///@operationTypes(org.example.CustomerSelfServiceBackend.authenticationController.signupUser)
+type signupUser_in {
+    registration : SignupRequestDto
 }
-type op1_in_e {
-    token : Token
-    e : int
+type signupUser_out {
+    userResponse : UserResponseDto
 }
-type op1_out_f {
-    f : double
-}
-///@operationTypes(org.example.Sample.Sample.op3)
-type op3_in {
-    a : bool
-    b : UserSecurityDetails
-}
-type op3_out {
-    t : string
-}
-interface org_example_Sample_Sample {
-    OneWay:
-        op1_in_d(op1_in_d),
-        op1_in_e(op1_in_e),
-        op4(void)
+interface org_example_CustomerSelfServiceBackend_authenticationController {
     RequestResponse:
-        op1_in(op1_in)(Token),
-        op1_out_f(Token)(op1_out_f),
-        op1_out(Token)(op1_out),
-        op3(op3_in)(op3_out)
+        authenticationRequest(authenticationRequest_in)(authenticationRequest_out),
+        signupUser(signupUser_in)(signupUser_out)
+}
+
+///@interface(org.example.CustomerSelfServiceBackend.cityStaticDataHolder)
+///@operationTypes(org.example.CustomerSelfServiceBackend.cityStaticDataHolder.getCitiesForPostalCode)
+type getCitiesForPostalCode_in {
+    postcalCode : string
+}
+type getCitiesForPostalCode_out {
+    result : CitiesResponseDto
+}
+interface org_example_CustomerSelfServiceBackend_cityStaticDataHolder {
+    RequestResponse:
+        getCitiesForPostalCode(getCitiesForPostalCode_in)(getCitiesForPostalCode_out)
+}
+
+///@interface(org.example.CustomerSelfServiceBackend.customerInformationHolder)
+///@operationTypes(org.example.CustomerSelfServiceBackend.customerInformationHolder.changeAddress)
+type changeAddress_in {
+    customerId : CustomerId
+    requestDto : AddressDto
+}
+type changeAddress_out {
+    result : AddressDto
+}
+///@operationTypes(org.example.CustomerSelfServiceBackend.customerInformationHolder.getCustomer)
+type getCustomer_in {
+    authentication : string
+    customerId : CustomerId
+}
+type getCustomer_out {
+    result : CustomerDto
+}
+///@operationTypes(org.example.CustomerSelfServiceBackend.customerInformationHolder.registerCustomer)
+type registerCustomer_in {
+    authentication : string
+    requestDto : CustomerRegistrationRequestDto
+}
+type registerCustomer_out {
+    result : CustomerDto
+}
+interface org_example_CustomerSelfServiceBackend_customerInformationHolder {
+    RequestResponse:
+        changeAddress(changeAddress_in)(changeAddress_out),
+        getCustomer(getCustomer_in)(getCustomer_out),
+        registerCustomer(registerCustomer_in)(registerCustomer_out)
+}
+
+///@interface(org.example.CustomerSelfServiceBackend.userInformationHolder)
+///@operationTypes(org.example.CustomerSelfServiceBackend.userInformationHolder.getCurrentUser)
+type getCurrentUser_in {
+    authentitaction : string
+}
+type getCurrentUser_out {
+    response : UserResponseDto
+}
+interface org_example_CustomerSelfServiceBackend_userInformationHolder {
+    RequestResponse:
+        getCurrentUser(getCurrentUser_in)(getCurrentUser_out)
+}
+
+///@interface(org.example.CustomerSelfServiceBackend.insuranceQuoteExpiredMessageConsumer)
+///@operationTypes(org.example.CustomerSelfServiceBackend.insuranceQuoteExpiredMessageConsumer.receiveInsuranceQuoteExpiredEvent)
+type receiveInsuranceQuoteExpiredEvent_in_message {
+    token : Token
+    message : InsuranceQuoteExpiredEvent
+}
+interface org_example_CustomerSelfServiceBackend_insuranceQuoteExpiredMessageConsumer {
+    OneWay:
+        receiveInsuranceQuoteExpiredEvent_in_message(receiveInsuranceQuoteExpiredEvent_in_message)
+    RequestResponse:
+        receiveInsuranceQuoteExpiredEvent_in(void)(Token)
+}
+
+///@interface(org.example.CustomerSelfServiceBackend.insuranceQuoteRequestInformationHolder)
+///@operationTypes(org.example.CustomerSelfServiceBackend.insuranceQuoteRequestInformationHolder.getInsuranceQuoteRequest)
+type getInsuranceQuoteRequest_in {
+    authentication : string
+    insuranceQuoteRequestId : long
+}
+type getInsuranceQuoteRequest_out {
+    quoteRequestDto : InsuranceQuoteRequestDto
+}
+///@operationTypes(org.example.CustomerSelfServiceBackend.insuranceQuoteRequestInformationHolder.createInsuranceQuoteRequest)
+type createInsuranceQuoteRequest_in {
+    authentication : string
+    requestDto : InsuranceQuoteRequestDto
+}
+type createInsuranceQuoteRequest_out {
+    quoteRequestDto : InsuranceQuoteRequestDto
+}
+type createInsuranceQuoteRequest_out_insuranceQuoteRequestEvent {
+    insuranceQuoteRequestEvent : InsuranceQuoteRequestEvent
+}
+///@operationTypes(org.example.CustomerSelfServiceBackend.insuranceQuoteRequestInformationHolder.respondToInsuranceQuote)
+type respondToInsuranceQuote_in {
+    id : long
+    insuranceQuoteResponseDto : InsuranceQuoteResponseDto
+}
+type respondToInsuranceQuote_out {
+    quoteRequestDto : InsuranceQuoteRequestDto
+}
+type respondToInsuranceQuote_out_customerDecisionEvent {
+    customerDecisionEvent : CustomerDecisionEvent
+}
+interface org_example_CustomerSelfServiceBackend_insuranceQuoteRequestInformationHolder {
+    RequestResponse:
+        getInsuranceQuoteRequest(getInsuranceQuoteRequest_in)(getInsuranceQuoteRequest_out),
+        createInsuranceQuoteRequest_in(createInsuranceQuoteRequest_in)(Token),
+        createInsuranceQuoteRequest_out_insuranceQuoteRequestEvent(Token)(createInsuranceQuoteRequest_out_insuranceQuoteRequestEvent),
+        createInsuranceQuoteRequest_out(Token)(createInsuranceQuoteRequest_out),
+        respondToInsuranceQuote_in(respondToInsuranceQuote_in)(Token),
+        respondToInsuranceQuote_out_customerDecisionEvent(Token)(respondToInsuranceQuote_out_customerDecisionEvent),
+        respondToInsuranceQuote_out(Token)(respondToInsuranceQuote_out)
+}
+
+///@interface(org.example.CustomerSelfServiceBackend.insuranceQuoteResponseMessageConsumer)
+///@operationTypes(org.example.CustomerSelfServiceBackend.insuranceQuoteResponseMessageConsumer.receiveInsuranceQuoteResponse)
+type receiveInsuranceQuoteResponse_in_message {
+    token : Token
+    message : InsuranceQuoteResponseEvent
+}
+interface org_example_CustomerSelfServiceBackend_insuranceQuoteResponseMessageConsumer {
+    OneWay:
+        receiveInsuranceQuoteResponse_in_message(receiveInsuranceQuoteResponse_in_message)
+    RequestResponse:
+        receiveInsuranceQuoteResponse_in(void)(Token)
+}
+
+///@interface(org.example.CustomerSelfServiceBackend.policyCreatedMessageConsumer)
+///@operationTypes(org.example.CustomerSelfServiceBackend.policyCreatedMessageConsumer.receivePolicyCreatedEvent)
+type receivePolicyCreatedEvent_in_message {
+    token : Token
+    message : InsuranceQuoteResponseEvent
+}
+interface org_example_CustomerSelfServiceBackend_policyCreatedMessageConsumer {
+    OneWay:
+        receivePolicyCreatedEvent_in_message(receivePolicyCreatedEvent_in_message)
+    RequestResponse:
+        receivePolicyCreatedEvent_in(void)(Token)
 }

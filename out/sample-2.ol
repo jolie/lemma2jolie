@@ -40,6 +40,7 @@ type Address {
     zip: string
 }
 ///@endCtx
+
 ///@beginCtx(Order)
 ///@aggregate
 ///@entity
@@ -174,42 +175,62 @@ type MenuItemIdAndQuantityList {
 }
 ///@endCtx
 
-///@interface(org.example.Sample.Sample)
-///@operationTypes(org.example.Sample.Sample.op1)
-type op1_in {
-    a : bool
-    b : Order
+///@beginCtx(API)
+///@valueObject
+type CreateOrderRequest {
+    consumerId: long
+    restaurantId: long
+    lineItems: LineItems
 }
-type op1_out {
-    c : string
+
+type LineItem {
+    menuItemId: string
+    quantity: int
 }
-type op1_in_d {
-    token : Token
-    d : Order
+
+type LineItems {
+    i*: LineItem
 }
-type op1_in_e {
-    token : Token
-    e : int
+
+///@valueObject
+type CreateOrderResponse {
+    orderId: long
 }
-type op1_out_f {
-    f : double
+
+///@valueObject
+type GetOrderResponse {
+    orderId: long
+    state: string
+    orderTotal: double
 }
-///@operationTypes(org.example.Sample.Sample.op3)
-type op3_in {
-    a : bool
-    b : DeliveryInformation
+///@endCtx
+
+///@interface(org.example.OrderService.Orders)
+///@operationTypes(org.example.OrderService.Orders.createOrder)
+type createOrder_in {
+    request : CreateOrderRequest
 }
-type op3_out {
-    t : string
+type createOrder_out {
+    response : CreateOrderResponse
 }
-interface org_example_Sample_Sample {
-    OneWay:
-        op1_in_d(op1_in_d),
-        op1_in_e(op1_in_e),
-        op4(void)
+///@operationTypes(org.example.OrderService.Orders.getOrder)
+type getOrder_in {
+    orderId : long
+}
+type getOrder_out {
+    response : GetOrderResponse
+}
+///@operationTypes(org.example.OrderService.Orders.monitorOrder)
+type monitorOrder_in {
+    orderId : long
+}
+type monitorOrder_out_response {
+    response : GetOrderResponse
+}
+interface org_example_OrderService_Orders {
     RequestResponse:
-        op1_in(op1_in)(Token),
-        op1_out_f(Token)(op1_out_f),
-        op1_out(Token)(op1_out),
-        op3(op3_in)(op3_out)
+        createOrder(createOrder_in)(createOrder_out),
+        getOrder(getOrder_in)(getOrder_out),
+        monitorOrder_in(monitorOrder_in)(Token),
+        monitorOrder_out_response(Token)(monitorOrder_out_response)
 }
